@@ -52,7 +52,7 @@ public class main {
         return trace;
     }
 
-    static String getFoatasNormalFormFromTrace(Set<String> I, String w, String[] A) {
+    static String getFoatasNormalFormFromWord(Set<String> I, String w, String[] A) {
         Map<String, Stack<String>> stacks = new HashMap<>();
 
         // create stacks for every letter
@@ -116,9 +116,47 @@ public class main {
         return to_return;
     }
 
-    static String getDiekertsDependenceGraph(String[] I) {
+    static String getDiekertsDependenceGraph(Set<String> I, String w, String[] A) {
 
-        return null;
+        Set<Integer> V = new HashSet<>();
+        Set<String> E = new HashSet<>();
+        String graphDotFormat = "digraph g{\n";
+
+        // adding vertices. Each vertex is equivalent to letters from w starting from left
+        for (int i=0;i<w.length();i++) {
+            V.add(i);
+        }
+
+        for (int i=w.length()-1;i>=0;i--) {
+            for (int j=i+1;j<w.length();j++) {
+                String pair = getPairInString(String.valueOf(w.charAt(i)), String.valueOf(w.charAt(j)));
+                String edge = getPairInString(String.valueOf(i+1), String.valueOf(j+1));
+                if (!I.contains(pair)) {
+                    // check if that edge is not transitive
+                    boolean canAdd = true;
+                    for (int k=i+1;k<j;k++) {
+                        String pair1 = getPairInString(String.valueOf(i+1), String.valueOf(k+1));
+                        String pair2 = getPairInString(String.valueOf(k+1), String.valueOf(j+1));
+                        if (E.contains(pair1) && E.contains(pair2)) {
+                            canAdd = false;
+                            break;
+                        }
+                    }
+                    if (canAdd) {
+                        E.add(edge);
+                        graphDotFormat = graphDotFormat + "\t" + (i+1) + " -> " + (j+1) + "\n";
+                    }
+                }
+            }
+        }
+
+        // add vertices to dot format
+        for (int i=0;i<w.length();i++) {
+            graphDotFormat = graphDotFormat + "\t" + (i+1) + "[label=" + String.valueOf(w.charAt(i)) + "]\n";
+        }
+        graphDotFormat = graphDotFormat + "}";
+
+        return graphDotFormat;
     }
 
     static String getFoatasNormalFormFromGraph(String[] I, String[] graph) {
@@ -145,10 +183,12 @@ public class main {
 
         Set<String> D = getDependenceRelations(I_set, A);
         Set<String> trace = getTrace(I_set, w);
-        String normalForm1 = getFoatasNormalFormFromTrace(I_set, w, A);
+        String normalForm1 = getFoatasNormalFormFromWord(I_set, w, A);
+        String graphEdges = getDiekertsDependenceGraph(I_set, w, A);
 
         System.out.println(D.toString());
         System.out.println(trace.toString());
         System.out.println(normalForm1);
+        System.out.println(graphEdges);
     }
 }
