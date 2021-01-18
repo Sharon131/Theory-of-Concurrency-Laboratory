@@ -116,7 +116,7 @@ public class main {
         return to_return;
     }
 
-    static String getDiekertsDependenceGraph(Set<String> I, String w, String[] A) {
+    static String getDiekertsDependenceGraph(Set<String> I, String w) {
 
         Set<Integer> V = new HashSet<>();
         Set<String> E = new HashSet<>();
@@ -159,9 +159,74 @@ public class main {
         return graphDotFormat;
     }
 
-    static String getFoatasNormalFormFromGraph(String[] I, String[] graph) {
+    static String getFoatasNormalFormFromGraph(String graph) {
+        Set<String> D = new HashSet<>();
+        Set<String> A = new HashSet<>();
+        String w = "";
 
-        return null;
+        String[] lines = graph.split("\n");
+        int line_indx = 1;
+
+        while (!lines[line_indx].contains("label") && line_indx<lines.length) {
+            String line = lines[line_indx];
+            String[] words = line.split("\\s");
+
+            String pair1 = getPairInString(words[1], words[3]);
+            String pair2 = getPairInString(words[3], words[1]);
+
+            D.add(pair1);
+            D.add(pair2);
+
+            line_indx++;
+        }
+
+        // add getting transitive dependencies
+        List<String> to_add = new LinkedList<>(); // this part needs a fix
+        for (String pair : D) {
+            String[] letters = pair.split("\\p{Punct}");
+            int first = Integer.parseInt(letters[1]);
+            int second = Integer.parseInt(letters[3]);
+
+            for (int k=first-1;k>0;k--) {
+                String otherPair = getPairInString(String.valueOf(k), letters[1]);
+                if (D.contains(otherPair)) {
+                    to_add.add(getPairInString(String.valueOf(k), letters[3]));
+                }
+            }
+        }
+        D.addAll(to_add);
+
+        // change labels from numbers to characters
+        while (line_indx<lines.length-1) {
+            String line = lines[line_indx];
+            String[] words = line.split("[\\p{Punct}\\s]");
+
+            // adding to alphabet
+            A.add(words[3]);
+
+            // updating word
+            w = w + words[3];
+
+            // replace number words[1] to literal words[3]
+            List<String> replaced = new LinkedList<>();
+            List<String> to_remove = new LinkedList<>();
+            for (String pair : D) {
+                String new_pair = pair.replace(words[1], words[3]);
+                to_remove.add(pair);
+                replaced.add(new_pair);
+            }
+
+            D.removeAll(to_remove);
+            D.addAll(replaced);
+
+            line_indx++;
+        }
+
+        System.out.println("W: " + w);
+        System.out.println("I set: " + D.toString());
+
+        // first get I from D
+        return getFoatasNormalFormFromWord(D, w, A.toArray(new String[0]));
     }
 
     // arguments: A, I, w
@@ -184,11 +249,13 @@ public class main {
         Set<String> D = getDependenceRelations(I_set, A);
         Set<String> trace = getTrace(I_set, w);
         String normalForm1 = getFoatasNormalFormFromWord(I_set, w, A);
-        String graphEdges = getDiekertsDependenceGraph(I_set, w, A);
+        String graphEdges = getDiekertsDependenceGraph(I_set, w);
+        String normalForm2 = getFoatasNormalFormFromGraph(graphEdges);
 
         System.out.println(D.toString());
         System.out.println(trace.toString());
         System.out.println(normalForm1);
         System.out.println(graphEdges);
+        System.out.println(normalForm2);
     }
 }
