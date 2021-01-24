@@ -26,6 +26,22 @@ public class main {
         return D;
     }
 
+    static Set<String> getIndependenceRelations(Set<String> D, Set<String> A) {
+        Set<String> I = new HashSet<String>();
+
+        for (String letter1 : A) {
+            for (String letter2 : A) {
+                String pair = getPairInString(letter1, letter2);
+                if (!D.contains(pair)) {
+                    I.add(pair);
+                    I.add(getPairInString(letter2, letter1));
+                }
+            }
+        }
+
+        return I;
+    }
+
     static Set<String> getTrace(Set<String> I,String w) {
         Set<String> trace = new HashSet<String>();
         trace.add(w);
@@ -68,7 +84,7 @@ public class main {
             Stack<String> stack = stacks.get(letter);
             stack.push(letter);
 
-            // fill other columns of dependent letters
+            // fill other columns of dependent letters with *
             for (String otherLetter : A) {
                 String pair = getPairInString(letter, otherLetter);
                 if (!I.contains(pair) && !letter.equals(otherLetter)) {
@@ -116,49 +132,62 @@ public class main {
         return to_return;
     }
 
-    static String getDiekertsDependenceGraph(Set<String> I, String w) {
+    static Set<String> removeTransitiveEdgesFromGraph(Set<String> E) {
 
-        Set<Integer> V = new HashSet<>();
-        Set<String> E = new HashSet<>();
+        Set<String> to_remove = new HashSet<>();
+
+        for (String e : E) {
+            String[] letters = e.split("\\p{Punct}");
+            int first = Integer.parseInt(letters[1]);
+            int second = Integer.parseInt(letters[2]);
+
+            for (int k=first+1;k<second;k++) {
+                String pair1 = getPairInString(letters[1], String.valueOf(k));
+                String pair2 = getPairInString(String.valueOf(k), letters[2]);
+                if (E.contains(pair1) && E.contains(pair2)) {
+                    to_remove.add(e);
+                }
+            }
+        }
+
+        E.removeAll(to_remove);
+
+        return E;
+    }
+
+    static String getGraphInDotFormat(Set<String> E, String w) {
         String graphDotFormat = "digraph g{\n";
 
-        // adding vertices. Each vertex is equivalent to letters from w starting from left
-        for (int i=0;i<w.length();i++) {
-            V.add(i);
+        for (String e : E) {
+            graphDotFormat = graphDotFormat + "\t" + e.charAt(1) + " -> " + e.charAt(3) + "\n";
         }
+
+        for (int i=0;i<w.length();i++) {
+            graphDotFormat = graphDotFormat + "\t" + (i+1) + "[label=" + String.valueOf(w.charAt(i)) + "]\n";
+        }
+
+        graphDotFormat = graphDotFormat + "}";
+
+        return graphDotFormat;
+    }
+
+    static Set<String> getDiekertsDependenceGraph(Set<String> I, String w) {
+
+        Set<String> E = new HashSet<>();
 
         for (int i=w.length()-1;i>=0;i--) {
             for (int j=i+1;j<w.length();j++) {
                 String pair = getPairInString(String.valueOf(w.charAt(i)), String.valueOf(w.charAt(j)));
                 String edge = getPairInString(String.valueOf(i+1), String.valueOf(j+1));
                 if (!I.contains(pair)) {
-                    // check if that edge is not transitive
-                    boolean canAdd = true;
-                    for (int k=i+1;k<j;k++) {
-                        String pair1 = getPairInString(String.valueOf(i+1), String.valueOf(k+1));
-                        String pair2 = getPairInString(String.valueOf(k+1), String.valueOf(j+1));
-                        if (E.contains(pair1) && E.contains(pair2)) {
-                            canAdd = false;
-                            break;
-                        }
-                    }
-                    if (canAdd) {
-                        E.add(edge);
-                        graphDotFormat = graphDotFormat + "\t" + (i+1) + " -> " + (j+1) + "\n";
-                    }
+                    E.add(edge);
                 }
             }
         }
-
-        // add vertices to dot format
-        for (int i=0;i<w.length();i++) {
-            graphDotFormat = graphDotFormat + "\t" + (i+1) + "[label=" + String.valueOf(w.charAt(i)) + "]\n";
-        }
-        graphDotFormat = graphDotFormat + "}";
-
-        return graphDotFormat;
+        return E;
     }
 
+    // assumption: graph contains all needed transitive edges
     static String getFoatasNormalFormFromGraph(String graph) {
         Set<String> D = new HashSet<>();
         Set<String> A = new HashSet<>();
@@ -179,22 +208,6 @@ public class main {
 
             line_indx++;
         }
-
-        // add getting transitive dependencies
-        List<String> to_add = new LinkedList<>(); // this part needs a fix
-        for (String pair : D) {
-            String[] letters = pair.split("\\p{Punct}");
-            int first = Integer.parseInt(letters[1]);
-            int second = Integer.parseInt(letters[3]);
-
-            for (int k=first-1;k>0;k--) {
-                String otherPair = getPairInString(String.valueOf(k), letters[1]);
-                if (D.contains(otherPair)) {
-                    to_add.add(getPairInString(String.valueOf(k), letters[3]));
-                }
-            }
-        }
-        D.addAll(to_add);
 
         // change labels from numbers to characters
         while (line_indx<lines.length-1) {
@@ -222,11 +235,13 @@ public class main {
             line_indx++;
         }
 
-        System.out.println("W: " + w);
-        System.out.println("I set: " + D.toString());
+        for (String letter : A) {
+            D.add(getPairInString(letter, letter));
+        }
 
-        // first get I from D
-        return getFoatasNormalFormFromWord(D, w, A.toArray(new String[0]));
+        Set<String> I = getIndependenceRelations(D, A);
+
+        return getFoatasNormalFormFromWord(I, w, A.toArray(new String[0]));
     }
 
     // arguments: A, I, w
@@ -249,13 +264,19 @@ public class main {
         Set<String> D = getDependenceRelations(I_set, A);
         Set<String> trace = getTrace(I_set, w);
         String normalForm1 = getFoatasNormalFormFromWord(I_set, w, A);
-        String graphEdges = getDiekertsDependenceGraph(I_set, w);
-        String normalForm2 = getFoatasNormalFormFromGraph(graphEdges);
+        Set<String> graphEdges = getDiekertsDependenceGraph(I_set, w);
+
+        String graphBigger = getGraphInDotFormat(graphEdges, w);
+        Set<String> graphEdges2 = removeTransitiveEdgesFromGraph(graphEdges);
+        String graphSmaller = getGraphInDotFormat(graphEdges2, w);
+
+        String normalForm2 = getFoatasNormalFormFromGraph(graphBigger);
 
         System.out.println(D.toString());
         System.out.println(trace.toString());
         System.out.println(normalForm1);
-        System.out.println(graphEdges);
+        System.out.println(graphSmaller);
+//        System.out.println(graphBigger);
         System.out.println(normalForm2);
     }
 }

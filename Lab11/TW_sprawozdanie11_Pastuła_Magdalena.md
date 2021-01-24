@@ -3,26 +3,22 @@
 ### Magdalena Pastuła
 ### Data laboratorium: 15.12.2020
 
-## 1. Zadanie do wykonania.
+## 1. Zadania do wykonania.
+
+Podczas tego laboratorium należało zaimplementować następujące problemy:
+
+1. Wyznaczenie relacji zależności na posdtawie relacji niezależności.
+2. Wyznaczenie śladu \[w\] na podstawie relacji niezależności wyznaczonej w poprzednim punkcie.
 
 ## 2. Koncepcja rozwiązania.
 
 ## 3. Implementacja i wyniki.
 
 
+Postać normalna Foaty założenie: graf wejściowy posiada wszystkie potrzebne krawędzie przechodnie, aby można było z niego wyciągnąć wszystkie relacje zależności.
+
 ## 4. Wnioski z ćwiczenia.
 
-
-Najpierw tworzysz graf składający się wyłącznie z wierzchołków, gdzie każdy wierzchołek odpowiada jednemu symbolowi ze słowa.
-Dla każdego symbolu ze słowa (iterując od końca) iterujesz dla każdego symbolu następującego po nim w tym słowie. Jeśli są zależne, to jeśli nie istnieje ścieżka z pierwszego do drugiego, to prowadzić krawędź od pierwszego do drugiego.
-W pseudokodzie:
-```
-g = createEmptyGraph(word)
-for s1 in word.reverse():
-  for s2 in word from s1 to word.end():
-    if s1.dependent(s2) and not g.vertexOf(s1).existsPathTo(g.vertexOf(s2)):
-      createEdge(s1, s2)
-```
 
 ## 5. Bibliografia.
 1. [Dokumentacja formatu dot w Graphviz](http://www.graphviz.org/pdf/dotguide.pdf)
