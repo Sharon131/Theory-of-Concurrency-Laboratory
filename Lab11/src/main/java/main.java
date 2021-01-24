@@ -104,12 +104,14 @@ public class main {
 
             for (String letter : A) {
                 Stack<String> stack = stacks.get(letter);
-                String mark = stack.peek();
-                if (mark.equals(letter)) {
-                    to_return = to_return + mark;
-                    stack.pop();
-                    taken.add(mark);
-                    takenLetters++;
+                if (!stack.empty()) {
+                    String mark = stack.peek();
+                    if (mark.equals(letter)) {
+                        to_return = to_return + mark;
+                        stack.pop();
+                        taken.add(mark);
+                        takenLetters++;
+                    }
                 }
             }
 
@@ -119,7 +121,7 @@ public class main {
                     String pair = getPairInString(letter, otherLetter);
                     if (!I.contains(pair) && !letter.equals(otherLetter)) {
                         Stack<String> stack = stacks.get(otherLetter);
-                        if (stack.peek().equals("*")) {
+                        if (!stack.empty() && stack.peek().equals("*")) {
                             stack.pop();
                         }
                     }
