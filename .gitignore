@@ -1,3 +1,5 @@
 *.zip
 */build/
 *.png
+node_modules/
+PAM08/
